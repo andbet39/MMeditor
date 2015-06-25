@@ -1,0 +1,6 @@
+{
+  "name" :"Simple Blog",
+  "directory": "/public/bower_components/",
+  "analytics": false,
+  "timeout": 120000
+}
