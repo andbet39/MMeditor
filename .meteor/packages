@@ -10,3 +10,9 @@ insecure
 iron:router
 manuelschoebel:wait-on-lib
 fortawesome:fontawesome
+cfs:standard-packages
+cfs:filesystem
+meteorhacks:npm
+
+
+npm-container

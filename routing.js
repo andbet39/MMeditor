@@ -1,5 +1,74 @@
+var Images = new FS.Collection("images", {
+    stores: [new FS.Store.FileSystem("images", {path: "c:/uploads"})]
+});
+FS.HTTP.setBaseUrl('/files');
 
+if (Meteor.isServer) {
+    var Busboy = Npm.require("busboy");
 
+    Router.onBeforeAction(function (req, res, next) {
+        var files = []; // Store files in an array and then pass them to request.
+        var image = {}; // crate an image object
+
+        if (req.method === "POST") {
+            var busboy = new Busboy({ headers: req.headers });
+            busboy.on("file", function (fieldname, file, filename, encoding, mimetype) {
+                image.mimeType = mimetype;
+                image.encoding = encoding;
+                image.filename = filename;
+
+                // buffer the read chunks
+                var buffers = [];
+
+                file.on('data', function(data) {
+                    buffers.push(data);
+                });
+                file.on('end', function() {
+                    // concat the chunks
+                    image.data = Buffer.concat(buffers);
+                    // push the image object to the file array
+                    files.push(image);
+                });
+            });
+
+            busboy.on("field", function(fieldname, value) {
+                req.body[fieldname] = value;
+            });
+
+            busboy.on("finish", function () {
+                // Pass the file array together with the request
+                req.files = files;
+                next();
+            });
+            // Pass request to busboy
+            req.pipe(busboy);
+        }
+        else{
+            this.next();
+        }
+    });
+}
+
+Router.route('/upload',function(){
+
+        var files = this.request.files;
+        var res = this.response;
+        var newFile = new FS.File();
+
+        newFile.attachData(files[0].data, {type: files[0].mimeType},function(err){
+            newFile.name(files[0].filename);
+
+            Images.insert(newFile, function (err, fileObj) {
+               while(fileObj.url()==null);
+                var resp = {
+                    files: [{url: fileObj.url()}]
+                };
+
+                res.end(JSON.stringify(resp));
+            });
+        });
+
+}, {where: 'server'});
 
 Router.route('/',{
     path:'/',
